@@ -1,9 +1,7 @@
 import fs from "fs-extra";
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 
-const openai = new OpenAIApi(new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
-}));
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 async function run() {
   const prompt = process.argv.slice(2).join(" ");
@@ -12,7 +10,8 @@ async function run() {
     process.exit(1);
   }
 
-  const completion = await openai.createChatCompletion({
+  // 1) Call OpenAI to generate a file manifest
+  const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: "You are a code generator. Reply with valid JSON." },
@@ -20,7 +19,7 @@ async function run() {
     ]
   });
 
-  const json = completion.data.choices[0].message.content;
+  const json = completion.choices[0].message.content;
   let files;
   try {
     files = JSON.parse(json);
@@ -29,6 +28,7 @@ async function run() {
     process.exit(1);
   }
 
+  // 2) Write each file to disk
   for (const { path, content } of files) {
     await fs.ensureDir(fs.dirname(path));
     await fs.writeFile(path, content, "utf8");
