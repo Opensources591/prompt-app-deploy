@@ -1,53 +1,25 @@
-name: "📦 Scaffold & 🚀 Deploy"
+# … earlier steps …
 
-on:
-  workflow_dispatch:
-    inputs:
-      project_prompt:
-        description: 'Natural language spec for your new app'
-        required: true
+  - name: Install dependencies
+    run: npm install
 
-jobs:
-  scaffold:
-    runs-on: ubuntu-latest
-    outputs:
-      pushed: ${{ steps.push.outputs.committed }}
-    steps:
-      - uses: actions/checkout@v3
+  - name: Scaffold from prompt
+    run: |
+      # Pass the prompt in single quotes to avoid shell misinterpretation of backticks
+      node scaffold.js '${{ github.event.inputs.project_prompt }}'
 
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
+  - name: Commit & Push scaffolded code
+    id: push
+    run: |
+      git config user.name "github-actions[bot]"
+      git config user.email "actions@github.com"
+      git add .
+      if git diff --quiet; then
+        echo "::set-output name=committed::false"
+      else
+        git commit -m "✨ Scaffold from prompt"
+        git push
+        echo "::set-output name=committed::true"
+      fi
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Scaffold from prompt
-        run: node scaffold.js "${{ github.event.inputs.project_prompt }}"
-
-      - name: Commit & Push scaffolded code
-        id: push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "actions@github.com"
-          git add .
-          if git diff --quiet; then
-            echo "::set-output name=committed::false"
-          else
-            git commit -m "✨ Scaffold from prompt"
-            git push
-            echo "::set-output name=committed::true"
-          fi
-
-  deploy:
-    needs: scaffold
-    if: needs.scaffold.outputs.pushed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: amondnet/vercel-action@v20
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: .
-          prod: true
+  # … deploy job …
