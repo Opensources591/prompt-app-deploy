@@ -1,0 +1,9 @@
+{
+  "name": "prompt-app-deploy",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "openai": "^4.7.0",
+    "fs-extra": "^11.1.1"
+  }
+}
